@@ -15,7 +15,7 @@ app.use(cors());
 app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.send("Memoir Echoes API running 🚀");
+  res.send("Gama Dynamics API running 🚀");
 });
 
 app.post("/generate-echo", async (req, res) => {
@@ -116,8 +116,154 @@ Return JSON with this exact shape:
   }
 });
 
+
+app.post("/color-coach", async (req, res) => {
+  try {
+    const providedKey = req.header("x-pvd-ai-key");
+    const expectedKey = process.env.PVD_AI_KEY;
+
+    if (expectedKey && providedKey !== expectedKey) {
+      return res.status(401).json({
+        message: "Unauthorized Color Coach request.",
+      });
+    }
+
+    const { prompt, request } = req.body ?? {};
+
+    if (!process.env.OPENAI_API_KEY) {
+      return res.status(500).json({
+        message: "OPENAI_API_KEY is not configured on the server.",
+      });
+    }
+
+    if (!request || typeof request !== "object") {
+      return res.status(400).json({
+        message: "A Color Coach request payload is required.",
+      });
+    }
+
+    const requiredNumbers = [
+      "targetL",
+      "targetA",
+      "targetB",
+      "measuredL",
+      "measuredA",
+      "measuredB",
+      "toleranceL",
+      "toleranceA",
+      "toleranceB",
+    ];
+
+    for (const key of requiredNumbers) {
+      if (typeof request[key] !== "number" || Number.isNaN(request[key])) {
+        return res.status(400).json({
+          message: `Invalid or missing numeric value: ${key}`,
+        });
+      }
+    }
+
+    const targetColorName =
+      typeof request.targetColorName === "string" && request.targetColorName.trim().length > 0
+        ? request.targetColorName.trim()
+        : "Unknown color";
+
+    const systemPrompt = `
+  You are Color Coach, a practical PVD color correction assistant for CIE L*a*b* readings.
+
+  You help an operator reason about how to move from a measured LAB result toward a target LAB result.
+
+  Rules:
+  - Be practical, conservative, and operator-friendly.
+  - The operator can mainly tweak nitrogen N2 and acetylene C2H2.
+  - Do not pretend a correction is guaranteed.
+  - Do not invent machine-specific settings.
+  - Keep recommendations as directional guidance, not exact proprietary recipes.
+  - Prioritise keeping any LAB axis already inside tolerance stable.
+  - Include fallback scenarios so the user gets multiple next moves in one API call.
+  - Return only valid JSON.
+  `.trim();
+
+    const fallbackPrompt = `
+  Target color: ${targetColorName}
+  Target LAB: L ${request.targetL}, a ${request.targetA}, b ${request.targetB}
+  Measured LAB: L ${request.measuredL}, a ${request.measuredA}, b ${request.measuredB}
+  Tolerance: L ±${request.toleranceL}, a ±${request.toleranceA}, b ±${request.toleranceB}
+  Current nitrogen N2: ${request.currentNitrogen ?? "not provided"}
+  Current acetylene C2H2: ${request.currentAcetylene ?? "not provided"}
+  Operator notes: ${request.operatorNotes || "none"}
+
+  Explain what is outside tolerance, what should be protected, and what direction the next test should move.
+
+  Return JSON with this exact shape:
+  {
+    "diagnosis": "string",
+    "nextStep": "string",
+    "gasRecommendation": "string",
+    "fallbackScenarios": [
+      {
+        "scenario": "string",
+        "action": "string",
+        "reason": "string"
+      }
+    ],
+    "confidence": "low | medium | high",
+    "safetyNote": "string"
+  }
+  `.trim();
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4.1-mini",
+      temperature: 0.35,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: systemPrompt },
+        {
+          role: "user",
+          content:
+            typeof prompt === "string" && prompt.trim().length > 0
+              ? prompt.trim()
+              : fallbackPrompt,
+        },
+      ],
+    });
+
+    const content = completion.choices?.[0]?.message?.content;
+
+    if (!content) {
+      return res.status(502).json({
+        message: "OpenAI returned an empty Color Coach response.",
+      });
+    }
+
+    const parsed = JSON.parse(content);
+
+    return res.json({
+      diagnosis: parsed.diagnosis ?? "No diagnosis returned.",
+      nextStep: parsed.nextStep ?? "Run a conservative color test before production.",
+      gasRecommendation: parsed.gasRecommendation ?? "No gas recommendation returned.",
+      fallbackScenarios: Array.isArray(parsed.fallbackScenarios)
+        ? parsed.fallbackScenarios.map((item) => ({
+            scenario: item?.scenario ?? "Unexpected result",
+            action: item?.action ?? "Review the result and make a smaller correction.",
+            reason: item?.reason ?? "The response did not include a reason.",
+          }))
+        : [],
+      confidence: parsed.confidence ?? "medium",
+      safetyNote:
+        parsed.safetyNote ??
+        "AI advice is a correction guide only. Validate with a color test and operator judgement before production.",
+    });
+  } catch (error) {
+    console.error("color-coach error:", error);
+
+    return res.status(500).json({
+      message: "Failed to generate Color Coach plan.",
+    });
+  }
+});
+
 const PORT = process.env.PORT || 8080;
 
 app.listen(PORT, () => {
-  console.log(`Memoir Echoes API running on port ${PORT}`);
+  console.log(`Gama Dynamics API running on port ${PORT}`);
 });

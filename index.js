@@ -175,6 +175,7 @@ app.post("/color-coach", async (req, res) => {
   Rules:
   - Be practical, conservative, and operator-friendly.
   - The operator can mainly tweak nitrogen N2 and acetylene C2H2.
+  - Gas flow controllers should be treated as 5-unit-step controls. Do not recommend gas changes smaller than 5 units. If the correction should be gentle, recommend the smallest available 5-unit step or holding that gas stable.
   - Do not pretend a correction is guaranteed.
   - Do not invent machine-specific settings.
   - Keep recommendations as directional guidance, not exact proprietary recipes.
@@ -192,23 +193,7 @@ app.post("/color-coach", async (req, res) => {
   Current acetylene C2H2: ${request.currentAcetylene ?? "not provided"}
   Operator notes: ${request.operatorNotes || "none"}
 
-  Explain what is outside tolerance, what should be protected, and what direction the next test should move.
-
-  Return JSON with this exact shape:
-  {
-    "diagnosis": "string",
-    "nextStep": "string",
-    "gasRecommendation": "string",
-    "fallbackScenarios": [
-      {
-        "scenario": "string",
-        "action": "string",
-        "reason": "string"
-      }
-    ],
-    "confidence": "low | medium | high",
-    "safetyNote": "string"
-  }
+  Explain what is outside tolerance, what should be protected, and what direction the next test should move. All gas recommendations must use 5-unit steps only, or say to hold the gas stable.
   `.trim();
 
     const completion = await openai.chat.completions.create({

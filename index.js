@@ -61,6 +61,14 @@ ${narrativeVoice || "No narrator profile yet."}
 Spark context, if any:
 ${spark || "No Spark provided."}
 
+Memoir Index rules:
+- Group memories into meaningful memoir chapters.
+- Reuse an existing chapter whenever the memory clearly belongs to a common life theme.
+- Create a new chapter only when the memory introduces a genuinely new stage, topic, or theme.
+- Chapter titles should be broad enough to contain multiple future Echoes.
+- Examples: Childhood, Family, Work and Survival, Military Years, Parenthood, Life Lessons, Migration, Places, Relationships.
+- chapterAction must be either "assign" or "create".
+
 Transcript:
 ${transcript.trim()}
 
@@ -73,7 +81,10 @@ Return JSON with this exact shape:
   "people": ["detected people names or roles"],
   "places": ["detected places"],
   "timePeriod": "detected time period or empty string",
-  "narratorObservation": "one small storytelling-style observation about the narrator, not a psychological diagnosis"
+  "narratorObservation": "one small storytelling-style observation about the narrator, not a psychological diagnosis",
+  "chapterAction": "create or assign",
+  "chapterTitle": "memoir chapter title",
+  "chapterSummary": "short description of the chapter"
 }
 `.trim();
 
@@ -106,6 +117,9 @@ Return JSON with this exact shape:
       places: Array.isArray(parsed.places) ? parsed.places : [],
       timePeriod: parsed.timePeriod ?? "",
       narratorObservation: parsed.narratorObservation ?? "",
+      chapterAction: parsed.chapterAction ?? "",
+      chapterTitle: parsed.chapterTitle ?? "",
+      chapterSummary: parsed.chapterSummary ?? "",
     });
   } catch (error) {
     console.error("generate-echo error:", error);

@@ -50,6 +50,16 @@ Rules:
 - Keep the writing human, intimate, and grounded.
 - Respect the selected mood.
 - Return only valid JSON.
+
+Narrator Mirror rules:
+- The Narrator Mirror is not a biography, personality diagnosis, relationship database, or memory bank.
+- Do not analyse who the user is as a person.
+- Observe only how the user tells stories.
+- Return only small storytelling observations that could gently update the long-term Narrator Mirror.
+- A single Echo should not dramatically redefine the narrator.
+- If there is no meaningful new observation, return empty arrays and null for smallObservation.
+- Observations should feel warm, humble, and editorial, like: "Your stories become especially vivid when you describe places."
+- Do not write therapy, personality labels, or life coaching.
 `.trim();
 
     const userPrompt = `
@@ -81,7 +91,17 @@ Return JSON with this exact shape:
   "people": ["detected people names or roles"],
   "places": ["detected places"],
   "timePeriod": "detected time period or empty string",
-  "narratorObservation": "one small storytelling-style observation about the narrator, not a psychological diagnosis",
+  "narratorObservation": "legacy one-line storytelling observation, or empty string",
+  "profileUpdate": {
+    "addNaturalTone": ["small tone observations, e.g. Reflective, Conversational"],
+    "addSentenceStyle": ["small sentence observations, e.g. Direct, Natural pauses"],
+    "addHumorStyle": ["small humour observations, e.g. Dry humour"],
+    "addStoryStructure": ["small structure observations, e.g. Starts with context"],
+    "addFavoriteSubjects": ["broad recurring subjects, e.g. Family, Work, Childhood"],
+    "addStrengths": ["storytelling strengths, e.g. Authentic voice"],
+    "smallObservation": "one warm editorial observation for the Home card, or null",
+    "addAvoidStyle": ["styles to avoid, e.g. Invented details"]
+  },
   "chapterAction": "create or assign",
   "chapterTitle": "memoir chapter title",
   "chapterSummary": "short description of the chapter"
@@ -108,6 +128,10 @@ Return JSON with this exact shape:
 
     const parsed = JSON.parse(content);
 
+    const profileUpdate = parsed.profileUpdate && typeof parsed.profileUpdate === "object"
+      ? parsed.profileUpdate
+      : {};
+
     return res.json({
       title: parsed.title ?? "Untitled Echo",
       echo: parsed.echo ?? "",
@@ -117,6 +141,18 @@ Return JSON with this exact shape:
       places: Array.isArray(parsed.places) ? parsed.places : [],
       timePeriod: parsed.timePeriod ?? "",
       narratorObservation: parsed.narratorObservation ?? "",
+      profileUpdate: {
+        addNaturalTone: Array.isArray(profileUpdate.addNaturalTone) ? profileUpdate.addNaturalTone : [],
+        addSentenceStyle: Array.isArray(profileUpdate.addSentenceStyle) ? profileUpdate.addSentenceStyle : [],
+        addHumorStyle: Array.isArray(profileUpdate.addHumorStyle) ? profileUpdate.addHumorStyle : [],
+        addStoryStructure: Array.isArray(profileUpdate.addStoryStructure) ? profileUpdate.addStoryStructure : [],
+        addFavoriteSubjects: Array.isArray(profileUpdate.addFavoriteSubjects) ? profileUpdate.addFavoriteSubjects : [],
+        addStrengths: Array.isArray(profileUpdate.addStrengths) ? profileUpdate.addStrengths : [],
+        smallObservation: typeof profileUpdate.smallObservation === "string" && profileUpdate.smallObservation.trim().length > 0
+          ? profileUpdate.smallObservation.trim()
+          : null,
+        addAvoidStyle: Array.isArray(profileUpdate.addAvoidStyle) ? profileUpdate.addAvoidStyle : [],
+      },
       chapterAction: parsed.chapterAction ?? "",
       chapterTitle: parsed.chapterTitle ?? "",
       chapterSummary: parsed.chapterSummary ?? "",

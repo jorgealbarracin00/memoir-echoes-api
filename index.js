@@ -56,9 +56,14 @@ Narrator Mirror rules:
 - Do not analyse who the user is as a person.
 - Observe only how the user tells stories.
 - Return only small storytelling observations that could gently update the long-term Narrator Mirror.
-- A single Echo should not dramatically redefine the narrator.
-- If there is no meaningful new observation, return empty arrays and null for smallObservation.
+- Most Echoes should NOT change the Narrator Mirror.
+- A single Echo should almost never redefine the narrator.
+- Only return observations when this Echo provides genuinely new evidence about the user's storytelling.
+- If this Echo simply reinforces what is already known, return empty arrays and null for smallObservation.
+- The Narrator Mirror should evolve slowly across many Echoes.
 - Observations should feel warm, humble, and editorial, like: "Your stories become especially vivid when you describe places."
+- Describe storytelling patterns, not personality.
+- Never infer mental health, values, intelligence, or character.
 - Do not write therapy, personality labels, or life coaching.
 `.trim();
 
